@@ -1,0 +1,158 @@
+install.packages("rstatix")
+library("rstatix")
+
+
+# read file
+dat <- read.csv('star_digital.csv')
+
+# Question 1
+# Similarity check
+Total <- dat[,'imp_1'] + dat[,'imp_2'] + dat[,'imp_3'] + dat[,'imp_4'] + dat[,'imp_5']+ dat[,'imp_6']
+
+attach(dat)
+t.test(Total~test)
+
+#data:  Total by test
+# t = 0.12734, df = 3204.4, p-value = 0.8987
+# alternative hypothesis: true difference in means between group 0 and group 1 is not equal to 0
+# 95 percent confidence interval:
+#  -0.8658621  0.9861407
+#   sample estimates:
+#  mean in group 0  mean in group 1 
+#     7.929217         7.869078 
+
+# Based on above results, On average, control group had 7.93 total impressions and Test group had
+# 7.86 impressions. The difference is minimal with a large p value of approximately 0.9
+
+# T- Test
+t.test(purchase~test)
+
+#Welch Two Sample t-test
+
+# t = -1.8713, df = 3309.2, p-value = 0.06139
+# alternative hypothesis: true difference in means between group 0 and group 1 is not equal to 0
+# 95 percent confidence interval:
+#   -0.039289257  0.000916332
+#  sample estimates:
+#  mean in group 0  mean in group 1 
+#    0.4856928        0.5048792
+
+# P value = 0.061 which is larger than 5% but there is a slight difference in conversion rate between control group
+# and test group, that leads us to conclude that ads are effective.
+
+#Logistic regression
+logitmod = glm(purchase~test,data=dat,family="binomial")
+summary(logitmod)
+
+#Deviance Residuals: 
+#  Min      1Q  Median      3Q     Max  
+#-1.186  -1.186   1.169   1.169   1.202 
+
+#Coefficients:
+#            Estimate Std. Error z value Pr(>|z|)  
+#(Intercept) -0.05724    0.03882  -1.474   0.1404  
+#test         0.07676    0.04104   1.871   0.0614 .
+---
+# The p value of test variable = 0.0614 (5% <P value < 10%) which tells us that showing ads is effective
+#but not highly significant.
+
+# Question 2
+
+imp_16 <- dat[,'imp_1'] + dat[,'imp_2'] + dat[,'imp_3'] + dat[,'imp_4'] + dat[,'imp_5'] + dat[,'imp_6'] 
+imp_16
+
+imp_16_test = imp_16 * dat$test
+
+fit1 <- glm(dat$purchase ~ imp_16 + imp_16_test, data = dat, family = binomial())
+summary(fit1)
+
+# Coefficients:
+# Estimate Std. Error z value Pr(>|z|)    
+# (Intercept) -0.181875   0.014584 -12.471  < 2e-16 ***
+#   imp_16       0.016228   0.002676   6.065 1.32e-09 ***
+#   imp_16_test  0.015055   0.002930   5.139 2.76e-07 ***
+
+# From the result we can see that the p-value of two variables are both every 
+#   small, which means that they are both significant.
+
+exp(coef(fit1))
+
+# (Intercept)    imp_16 imp_16_test 
+# 0.8337053   1.0163605   1.0151687 
+
+# The exponent of coefficient of imp_16 is 1.016, which means that imp_16 
+#   increase 1, the odds of purchase go up by 1.6%.
+# The exponent of coefficient of imp_16_test is 1.015, which means that imp_16_test 
+#   increase 1, the odds of purchase go up by 1.5%.
+
+# The coefficient of imp_16 is positive, which means higher frequency of  
+#   impression on ads will increase the probability of customer purchase.
+# The coefficient of imp_16_test is also positive, which suggests that when test=1,
+#   increasing frequency of ads from Star Digital also increase the probability 
+#   of customer purchase.
+# So there is a frequency effect of advertising on purchase.
+
+
+# Question 3
+
+imp_15 <- dat[,'imp_1'] + dat[,'imp_2'] + dat[,'imp_3'] + dat[,'imp_4'] + dat[,'imp_5']
+imp_15
+
+imp_15_test = imp_15 * dat$test
+imp_15_test
+
+imp_6_test = dat$imp_6 * dat$test
+
+fit2 <- glm(dat$purchase ~ imp_15 + imp_15_test + dat$imp_6 + imp_6_test, data = dat, 
+            family = binomial())
+summary(fit2)
+
+# Coefficients:
+# Estimate Std. Error z value Pr(>|z|)    
+# (Intercept) -0.171919   0.014669 -11.720  < 2e-16 ***
+#  imp_15       0.019603   0.003265   6.005 1.92e-09 ***
+#  imp_15_test  0.014437   0.003562   4.054 5.04e-05 ***
+#  dat$imp_6    0.004068   0.004263   0.954   0.3399    
+# imp_6_test   0.013344   0.005321   2.508   0.0121 *  
+
+exp(coef(fit2))
+
+# (Intercept)     imp_15 imp_15_test   dat$imp_6  imp_6_test 
+# 0.8420471   1.0197964   1.0145422   1.0040766   1.0134331 
+
+# From the model result we can see that the coefficient of imp_15_test is higher
+#   than that of imp_6_test, which means that for test group, imp_15 has bigger
+#   influence that imp_6 on customer purchase.
+
+# The exponent of coefficient of imp_15_test is 1.0145, which means that imp_15_test
+#   increase 1, the odds of purchase go up by 1.45%.
+# The exponent of coefficient of imp_6_test is 1.0134, which means that imp_6_test 
+#   increase 1, the odds of purchase go up by 1.34%.
+# So Site 1-5 is more effective regarding conversion of customer.
+
+
+#Optional Question - Analyzing effect of Advertising in Sites1-5 vs Site6 
+#Here using the LR regression above, we assume 2 scenarios
+
+#Scenario 1 - Charity Ads are shown in Sites1-5(test) & Star Digital Ads are shown in Site 6(Control)
+#Using the LR equation, we can obtain Probability of buying for Scenario 1
+log_purch <- -0.171919 + 0.019603 + 0.014437*1 +   0.004068 + 0.013344*0
+purch_odds <- exp(log_purch)
+p_purch <- purch_odds/(1+purch_odds)
+p_purch #Probability of Purchase in this scenario is 0.4665971
+
+#Scenario 2 - Charity Ads are shown in Site 6 & Star digital ads are shown in Sites1-5(Control)
+#Using the LR equation, we can obtain Probability of buying for Scenario 2
+log_purch <- -0.171919 + 0.019603 + 0.014437*0 +   0.004068 + 0.013344*1
+purch_odds <- exp(log_purch)
+p_purch <- purch_odds/(1+purch_odds)
+p_purch #Probability of Purchase in this scenario is 0.4663251
+
+
+#Cost/Impression Site 1-5 = 0.025
+#Pblty of Buying if advertised through Sites 1-5 = 0.4665971
+#Expected value of Customer Lifetime= 1200*0.4665971 = 559.9165
+
+#Cost/Impression Site 6 = 0.020
+#Pblty of Buying if advertised through Site 6 = 0.4663251
+#Expected value of Customer Lifetime= 1200*0.4663251 = 559.5901
